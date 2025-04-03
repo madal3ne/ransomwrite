@@ -1,7 +1,30 @@
-# ransomwrite
+## ransomwrite
 
-Hi! Just a small thing.... 
+# Want to run it for yourself?
+**The python packages you need:**
 
-This project is intented for learning purposes. 
+### Open CV:
+`pip install opencv-python`
 
-You will need to run 
+### Tesseract: 
+`pip install pytesseract`
+
+*Installing*
+
+Windows:
+https://github.com/UB-Mannheim/tesseract/wiki
+
+Mac:
+`brew install tesseract`
+
+Linux:
+`sudo apt install tesseract-ocr`
+
+### Numpy:
+`pip install numpy`
+
+### pillow:
+`pip install pillow`
+
+### matplotlib: 
+`pip install matplotlib`
