@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letters Processed</title>
+</head>
+<body>
+    <h2>User Input: {{ user_input }}</h2>
+{% if letter_images %}
+    <div>
+        {% for image in letter_images %}
+        <img src="{{ image }}" alt="Letter Image">
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No images found for the entered text.</p>
+{% endif %}
+</body>
+</html>

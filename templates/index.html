@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Letter Input</title>
+    <title>Text to Letters</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,10 +24,11 @@
 </head>
 <body>
     <h1>Enter Your Text</h1>
-    <form action="/process" method="POST">
-        <input type="text" name="user_input" placeholder="Type something..." required>
-        <br>
+    <form action="/process" method="post">
+        <label for="user_input">Enter text:</label>
+        <input type="text" id="user_input" name="user_input" required>
         <button type="submit">Submit</button>
     </form>
+     
 </body>
 </html>
