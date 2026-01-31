@@ -6,26 +6,80 @@
     <title>Letters Processed</title>
     <style>
         .space { display:inline-block; width:20px; }
-        .missing { display:inline-block; padding:4px 6px; border:1px dashed #aaa; background:#f9f9f9; font-weight:bold; color:#c00; margin-right:6px; }
-        img.letter { margin-right:6px; height:72px; }
+        /* Text fallback for missing letters: match image height and align center */
+        .missing, .missing-text { display:inline-flex; align-items:center; justify-content:center; height:72px; min-width:44px; padding:4px 8px; border:1px dashed #aaa; background:#f9f9f9; font-weight:bold; color:#c00; margin-right:6px; font-size:48px; line-height:1; }
+        img.letter { margin-right:6px; height:72px; vertical-align:middle }
+
+        /* font style containers */
+        .font-sans { font-family: Arial, Helvetica, sans-serif }
+        .font-serif { font-family: 'Times New Roman', Times, serif }
+        .font-monospace { font-family: 'Courier New', Courier, monospace }
+        .font-cursive { font-family: 'Brush Script MT', 'Comic Sans MS', cursive }
+
+        /* Download button and container styling */
+        .letters-container { display:flex; flex-wrap:wrap; align-items:center; background:#fff; padding:12px; border:1px solid #eee }
+        #download_btn { padding:8px 12px; font-size:14px; margin-right:8px; }
+        #download_status { font-size:13px; color:#666; margin-left:8px }
+    </style>
     </style>
 </head>
 <body>
     <h2>User Input: {{ user_input }}</h2>
 {% if letter_images %}
-    <div>
+    <div style="margin-bottom:12px;">
+        <button id="download_btn">Download as PNG</button>
+        <span id="download_status"></span>
+    </div>
+
+    <div id="letters_area" class="letters-container font-{{ font_style|default('serif') }}">
         {% for item in letter_images %}
             {% if item.type == 'image' %}
                 <img class="letter" src="{{ item.src }}" alt="Letter Image">
             {% elif item.type == 'space' %}
                 <span class="space"></span>
             {% elif item.type == 'missing' %}
-                <span class="missing">[{{ item.char }}]</span>
+                <span class="missing-text">{{ item.char }}</span>
             {% endif %}
         {% endfor %}
     </div>
 {% else %}
     <p>No images found for the entered text.</p>
 {% endif %}
+    <script>
+        const downloadBtn = document.getElementById('download_btn');
+        const statusSpan = document.getElementById('download_status');
+
+        async function downloadServerPNG() {
+            downloadBtn.disabled = true;
+            statusSpan.textContent = 'Rendering on server...';
+            try {
+                const form = new FormData();
+                form.append('user_input', '{{ user_input }}');
+                const res = await fetch('/export_png', {
+                    method: 'POST',
+                    body: form
+                });
+                if (!res.ok) throw new Error('Export failed');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                a.download = `ransom_note_${ts}.png`;
+                a.href = url;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                statusSpan.textContent = 'Downloaded';
+            } catch (err) {
+                console.error(err);
+                statusSpan.textContent = 'Error rendering image';
+            } finally {
+                setTimeout(() => { downloadBtn.disabled = false; statusSpan.textContent = ''; }, 1200);
+            }
+        }
+
+        downloadBtn.addEventListener('click', downloadServerPNG);
+    </script>
 </body>
 </html>

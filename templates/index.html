@@ -20,6 +20,15 @@
             font-size: 16px;
             margin-top: 10px;
         }
+        /* Text fallback for missing letters in live preview */
+        .missing-text { display:inline-flex; align-items:center; justify-content:center; height:72px; min-width:44px; padding:4px 8px; border:1px dashed #aaa; background:#f9f9f9; font-weight:bold; color:#c00; margin-right:6px; font-size:48px; line-height:1; }
+        img.letter { height:72px; margin-right:6px; vertical-align:middle }
+
+        /* font style containers for preview */
+        .font-sans { font-family: Arial, Helvetica, sans-serif }
+        .font-serif { font-family: 'Times New Roman', Times, serif }
+        .font-monospace { font-family: 'Courier New', Courier, monospace }
+        .font-cursive { font-family: 'Brush Script MT', 'Comic Sans MS', cursive }
     </style>
 </head>
 <body>
@@ -27,14 +36,15 @@
     <div style="max-width:720px;margin:0 auto;text-align:left;">
         <label for="user_input"><strong>Type your note:</strong></label>
         <textarea id="user_input" name="user_input" rows="4" style="width:100%; padding:10px; font-size:16px;" placeholder="Type something like: HELLO WORLD"></textarea>
-        <div style="margin-top:10px; display:flex; gap:8px;">
-            <button id="submit_btn" style="padding:10px 16px;">Generate (full page)</button>
-            <button id="clear_btn" style="padding:10px 16px;">Clear</button>
+        <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+            <div>
+                <button id="submit_btn" style="padding:10px 16px;">Generate (full page)</button>
+                <button id="clear_btn" style="padding:10px 16px;">Clear</button>
+            </div>
         </div>
 
         <h3 style="margin-top:18px;">Live preview</h3>
-        <div id="preview" style="min-height:120px; border:1px solid #eee; padding:12px; background:#fff; display:flex; flex-wrap:wrap; align-items:center;"></div>
-    </div>
+        <div id="preview" class="font-serif" style="min-height:120px; border:1px solid #eee; padding:12px; background:#fff; display:flex; flex-wrap:wrap; align-items:center;"></div>
 
     <script>
         const input = document.getElementById('user_input');
@@ -59,15 +69,8 @@
                     preview.appendChild(sp);
                 } else if (item.type === 'missing') {
                     const miss = document.createElement('span');
-                    miss.className = 'missing';
-                    miss.textContent = '[' + item.char + ']';
-                    miss.style.display = 'inline-block';
-                    miss.style.padding = '4px 6px';
-                    miss.style.border = '1px dashed #aaa';
-                    miss.style.background = '#f9f9f9';
-                    miss.style.fontWeight = 'bold';
-                    miss.style.color = '#c00';
-                    miss.style.marginRight = '6px';
+                    miss.className = 'missing-text';
+                    miss.textContent = item.char;
                     preview.appendChild(miss);
                 }
             });
@@ -104,7 +107,6 @@
         submitBtn.addEventListener('click', (e) => {
             e.preventDefault();
             const text = input.value || '';
-            // Redirect to full-page generator (POST through a form)
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/process';

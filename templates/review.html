@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Review ambiguous letters</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .controls { margin-bottom: 12px; }
+        .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .card { width: 140px; border:1px solid #eee; padding:8px; background:#fff; text-align:center }
+        .card img { max-width:120px; max-height:120px; display:block; margin:0 auto 6px }
+        .letters { display:flex; flex-wrap:wrap; gap:4px; justify-content:center }
+        .letters button { padding:6px 8px; font-weight:bold; cursor:pointer }
+        .selected { outline: 3px solid #06f }
+        .small { font-size:12px; color:#666 }
+    </style>
+</head>
+<body>
+    <h1>Review ambiguous crops</h1>
+
+    <div class="controls">
+        <label for="unsorted_select">Unsorted folder:</label>
+        <select id="unsorted_select">
+            {% for r in roots %}
+            <option value="{{ r }}" {% if r==selected %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+        </select>
+        <button id="reload">Reload</button>
+        <span class="small">Tip: click a thumbnail then press a letter key (A-Z) to assign.</span>
+    </div>
+
+    <div id="grid" class="grid">
+        {% for fname, src in images|zip(images_urls) %}
+        <div class="card" data-filename="{{ fname }}">
+            <img src="{{ src }}" alt="{{ fname }}">
+            <div class="letters">
+                {% for ch in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                <button data-letter="{{ ch }}">{{ ch }}</button>
+                {% endfor %}
+            </div>
+            <div class="small">{{ fname }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const unsortedSelect = document.getElementById('unsorted_select');
+        const reloadBtn = document.getElementById('reload');
+
+        function postAssign(unsorted, filename, letter) {
+            return fetch('/review/assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unsorted: unsorted, filename: filename, letter: letter })
+            }).then(r => r.json());
+        }
+
+        grid.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-letter]');
+            if (btn) {
+                const card = btn.closest('.card');
+                const filename = card.getAttribute('data-filename');
+                const letter = btn.getAttribute('data-letter');
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                const res = await postAssign(unsortedSelect.value, filename, letter);
+                if (res && res.ok) {
+                    // remove card
+                    card.remove();
+                } else {
+                    btn.textContent = 'Err';
+                    setTimeout(() => btn.disabled=false, 1200);
+                }
+            }
+        });
+
+        // keyboard shortcuts: A-Z assign currently selected card
+        let selectedCard = null;
+        grid.addEventListener('click', (e) => {
+            const card = e.target.closest('.card');
+            if (!card) return;
+            if (selectedCard) selectedCard.classList.remove('selected');
+            selectedCard = card;
+            card.classList.add('selected');
+        });
+
+        document.addEventListener('keydown', async (e) => {
+            if (!selectedCard) return;
+            const key = e.key.toUpperCase();
+            if (key.length === 1 && key >= 'A' && key <= 'Z') {
+                const filename = selectedCard.getAttribute('data-filename');
+                // find button for letter
+                const btn = selectedCard.querySelector(`button[data-letter="$${key}"]`);
+                // fallback: call assign directly
+                const res = await postAssign(unsortedSelect.value, filename, key);
+                if (res && res.ok) selectedCard.remove();
+            }
+        });
+
+        reloadBtn.addEventListener('click', () => {
+            const val = unsortedSelect.value;
+            const params = new URLSearchParams();
+            params.set('src', val);
+            window.location = '/review?' + params.toString();
+        });
+    </script>
+</body>
+</html>
