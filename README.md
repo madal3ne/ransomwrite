@@ -59,6 +59,16 @@ Recommended Render environment variables:
 
 Tip: After the first deploy, check service logs for font or Tesseract path errors. If you see font-related issues, add system font packages in the Dockerfile (or install them in your build step).
 
+Post-deploy smoke test:
+
+- You can run a quick smoke test against your deployed app using the included script `scripts/smoke_test.py`:
+
+  python scripts/smoke_test.py --url https://your-deploy-url
+
+- There is also a GitHub Action workflow `Deploy smoke test` (manual run) that uses the secret `DEPLOY_URL`. To use it:
+  - Add repository secret `DEPLOY_URL` set to your public service URL (e.g., https://ransom-example.onrender.com)
+  - In GitHub -> Actions -> Deploy smoke test -> Run workflow
+
 CI:
 - GitHub Actions runs tests on push to `main` (see `.github/workflows/ci.yml`).
 

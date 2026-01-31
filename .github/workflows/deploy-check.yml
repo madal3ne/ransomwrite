@@ -1,0 +1,26 @@
+name: Deploy smoke test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install requests
+        run: python -m pip install --upgrade pip && pip install requests
+
+      - name: Run smoke test
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+        run: |
+          if [ -z "$DEPLOY_URL" ]; then echo "Set the secret DEPLOY_URL to the deployed app URL"; exit 1; fi
+          python scripts/smoke_test.py --url "$DEPLOY_URL"
