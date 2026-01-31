@@ -1,14 +1,34 @@
 import os
 import random
 import shutil
+import logging
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from flask import Flask, render_template, request, jsonify, send_from_directory, url_for, send_file
 from werkzeug.utils import secure_filename
-# helper to find unsorted folders
+# helper to find unsorted roots
 from sort_unsorted import find_unsorted_roots
 
+# Rate limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+
+# Config from environment
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret')
+# Tesseract path override
+TESSERACT_CMD = os.environ.get('TESSERACT_CMD')
+if TESSERACT_CMD:
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+
+# Basic upload limits
+app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_CONTENT_LENGTH', 1_000_000))  # 1 MB default
+app.config['ITEM_MAX_CHARS'] = int(os.environ.get('ITEM_MAX_CHARS', 200))  # text length limit
 
 # This is where the app looks for the images (directly in the letters folder, not static)
 letters_dir = os.path.join(app.root_path, 'letters')
@@ -34,7 +54,7 @@ def sync_letters_to_static(src=letters_dir, dst=static_letters_dir):
                     if not os.path.exists(dst_file) or os.path.getmtime(src_file) > os.path.getmtime(dst_file):
                         shutil.copy2(src_file, dst_file)
                 except Exception as e:
-                    print(f"Could not copy {src_file} -> {dst_file}: {e}")
+                    logger.warning("Could not copy %s -> %s: %s", src_file, dst_file, e)
 
 # run sync at startup
 sync_letters_to_static()
@@ -94,7 +114,12 @@ def process_text():
     return render_template('process.html', user_input=user_input, letter_images=letter_images, font_style=font_style)
 
 
+# rate limiting for API endpoints
+limiter = Limiter(app, key_func=get_remote_address, default_limits=[os.environ.get('DEFAULT_RATE_LIMIT', '60 per minute')])
+
+
 @app.route('/api/render', methods=['POST'])
+@limiter.limit(os.environ.get('API_RENDER_LIMIT', '30 per minute'))
 def api_render():
     """Return JSON describing how to render the provided text as a list of items.
     Each item is a dict with keys: type: 'image'|'space'|'missing', and src/char when applicable.
@@ -175,12 +200,16 @@ def _find_font_path(preferred_names=('times.ttf', 'times.ttf', 'timesi.ttf', 'ti
 
 
 @app.route('/export_png', methods=['POST'])
+@limiter.limit(os.environ.get('EXPORT_LIMIT', '20 per minute'))
 def export_png():
     """Server-side renderer: compose letter images and text into a PNG and return it."""
     data = request.form or {}
     user_input = data.get('user_input')
     if not user_input:
         return jsonify({'error': 'no text'}), 400
+
+    if len(user_input) > app.config['ITEM_MAX_CHARS']:
+        return jsonify({'error': f'text too long (max {app.config["ITEM_MAX_CHARS"]} chars)'}), 400
 
     # Rendering parameters
     target_height = 144  # pixels for high-res PNG
@@ -419,5 +448,8 @@ def review_list():
 
 
 if __name__ == '__main__':
-  
-    app.run(debug=True)
+    # Production: respect PORT and do not enable debug mode here
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    logger.info('Starting app on %s:%s (debug disabled)', host, port)
+    app.run(host=host, port=port, debug=False)

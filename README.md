@@ -1,30 +1,46 @@
 ## ransomwrite
 
-# Want to run it for yourself?
-**The python packages you need:**
+A simple Flask app to build "ransom-note" style text from scanned letter images.
 
-### Open CV:
-`pip install opencv-python`
+Quick start (development):
 
-### Tesseract: 
-`pip install pytesseract`
+1. Create and activate a virtual environment (recommended):
 
-*Installing*
+   python -m venv venv
+   # Windows PowerShell
+   .\venv\Scripts\Activate.ps1
 
-Windows:
-https://github.com/UB-Mannheim/tesseract/wiki
+2. Install dependencies:
 
-Mac:
-`brew install tesseract`
+   pip install -r requirements.txt
 
-Linux:
-`sudo apt install tesseract-ocr`
+3. Install the Tesseract binary (required for OCR):
+   - Windows (UB-Mannheim): https://github.com/UB-Mannheim/tesseract/wiki
+   - macOS: brew install tesseract
+   - Linux (Debian/Ubuntu): sudo apt install tesseract-ocr
 
-### Numpy:
-`pip install numpy`
+4. Start the app:
 
-### pillow:
-`pip install pillow`
+   python app.py
 
-### matplotlib: 
-`pip install matplotlib`
+5. Open http://127.0.0.1:5000/
+
+Docker (production-ish):
+
+1. Build image:
+   docker build -t ransomwrite .
+2. Run with docker-compose (dev):
+   docker-compose up --build
+
+Configuration via environment variables:
+
+- SECRET_KEY: Flask secret (default: dev-secret)
+- TESSERACT_CMD: full path to tesseract binary (optional)
+- MAX_CONTENT_LENGTH: request max size (bytes)
+- ITEM_MAX_CHARS: maximum characters allowed per input (default 200)
+- PORT: port for app to listen on (defaults to 5000)
+- DEFAULT_RATE_LIMIT / API_RENDER_LIMIT / EXPORT_LIMIT: rate limit strings (e.g. "30 per minute")
+
+CI:
+- GitHub Actions runs tests on push to `main` (see `.github/workflows/ci.yml`).
+

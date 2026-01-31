@@ -1,0 +1,10 @@
+Flask>=2.2
+pytesseract
+opencv-python
+numpy
+Pillow
+matplotlib
+pymupdf
+flask-limiter
+gunicorn
+pytest
