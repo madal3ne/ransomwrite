@@ -41,6 +41,24 @@ Configuration via environment variables:
 - PORT: port for app to listen on (defaults to 5000)
 - DEFAULT_RATE_LIMIT / API_RENDER_LIMIT / EXPORT_LIMIT: rate limit strings (e.g. "30 per minute")
 
+Render deployment & Docker tips:
+
+- If you plan to deploy on Render (or another PaaS), note that **Tesseract is required** for OCR to work. The included `Dockerfile` installs `tesseract-ocr` so Docker-based deploys are the easiest way to ensure system dependencies are available.
+- If you prefer Render's native build (no Dockerfile), add a build step to install Tesseract (Debian/Ubuntu example):
+
+  apt-get update && apt-get install -y tesseract-ocr
+
+Recommended Render environment variables:
+
+- `SECRET_KEY` — secure secret for Flask sessions (set to a long random value)
+- `TESSERACT_CMD` — path to the Tesseract binary (e.g., `/usr/bin/tesseract` in the container)
+- `ITEM_MAX_CHARS` — max characters per input (default 200)
+- `MAX_CONTENT_LENGTH` — max request size in bytes
+- `DEFAULT_RATE_LIMIT`, `API_RENDER_LIMIT`, `EXPORT_LIMIT` — rate limits (e.g., `"30 per minute"`)
+- `GUNICORN_WORKERS` — optional: number of Gunicorn workers to run
+
+Tip: After the first deploy, check service logs for font or Tesseract path errors. If you see font-related issues, add system font packages in the Dockerfile (or install them in your build step).
+
 CI:
 - GitHub Actions runs tests on push to `main` (see `.github/workflows/ci.yml`).
 

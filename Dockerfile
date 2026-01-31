@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set workdir
 WORKDIR /app
 
-# Install system deps for PIL/OpenCV
+# Install system deps for PIL/OpenCV and Tesseract (required for OCR)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libglib2.0-0 \
