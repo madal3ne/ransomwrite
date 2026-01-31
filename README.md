@@ -44,3 +44,25 @@ Configuration via environment variables:
 CI:
 - GitHub Actions runs tests on push to `main` (see `.github/workflows/ci.yml`).
 
+Running tests locally:
+
+- Create and activate a virtual environment (recommended):
+
+  python -m venv .venv
+  # Windows PowerShell
+  .\.venv\Scripts\Activate.ps1
+
+- Install dependencies:
+
+  pip install -r requirements.txt
+
+- Ensure the Tesseract binary is installed and accessible (see above).
+
+- Run the test suite:
+
+  python -m pytest -q
+
+Notes:
+- If `pytest` is not on your PATH, use `python -m pytest` to run the test runner. 
+- Set `TESSERACT_CMD` in your environment if Tesseract is installed in a custom location.
+
