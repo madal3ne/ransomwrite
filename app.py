@@ -115,7 +115,7 @@ def process_text():
 
 
 # rate limiting for API endpoints
-limiter = Limiter(app, key_func=get_remote_address, default_limits=[os.environ.get('DEFAULT_RATE_LIMIT', '60 per minute')])
+limiter = Limiter(key_func=get_remote_address, default_limits=[os.environ.get('DEFAULT_RATE_LIMIT', '60 per minute')], app=app)
 
 
 @app.route('/api/render', methods=['POST'])
