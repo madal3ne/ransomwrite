@@ -4,13 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Letters Processed</title>
+    <style>
+        .space { display:inline-block; width:20px; }
+        .missing { display:inline-block; padding:4px 6px; border:1px dashed #aaa; background:#f9f9f9; font-weight:bold; color:#c00; margin-right:6px; }
+        img.letter { margin-right:6px; height:72px; }
+    </style>
 </head>
 <body>
     <h2>User Input: {{ user_input }}</h2>
 {% if letter_images %}
     <div>
-        {% for image in letter_images %}
-        <img src="{{ image }}" alt="Letter Image">
+        {% for item in letter_images %}
+            {% if item.type == 'image' %}
+                <img class="letter" src="{{ item.src }}" alt="Letter Image">
+            {% elif item.type == 'space' %}
+                <span class="space"></span>
+            {% elif item.type == 'missing' %}
+                <span class="missing">[{{ item.char }}]</span>
+            {% endif %}
         {% endfor %}
     </div>
 {% else %}

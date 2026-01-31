@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request
+import random
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
@@ -26,26 +27,71 @@ def process_text():
     
     letter_images = []
 
-    
     for letter in user_input:
-        letter_folder = os.path.join(letters_dir, letter.upper())  
-        print(f"Looking for folder: {letter_folder}")  
+        # Handle space characters explicitly
+        if letter == ' ':
+            letter_images.append({'type': 'space'})
+            continue
 
-        # Check if the folder for the letter exists
+        letter_folder = os.path.join(letters_dir, letter.upper())
+        print(f"Looking for folder: {letter_folder}")
+
+        # Check if the folder for the letter exists and contains image files
         if os.path.exists(letter_folder):
-            images = os.listdir(letter_folder)
+            images = [f for f in os.listdir(letter_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
             if images:
-                # Get the first image in the folder (if any)
-                image_path = f"letters/{letter.upper()}/{images[0]}"
-                letter_images.append(image_path)
-                print(f"Found image for {letter}: {images[0]}") 
+                # Select a random image from available letter variants for a more natural look
+                selected = random.choice(images)
+                image_path = f"letters/{letter.upper()}/{selected}"
+                letter_images.append({'type': 'image', 'src': image_path})
+                print(f"Found image for {letter}: {selected}")
             else:
-                print(f"No images found for letter {letter}")  
+                print(f"No images found for letter {letter}")
+                letter_images.append({'type': 'missing', 'char': letter.upper()})
         else:
-            print(f"Folder not found for letter {letter}")  
+            print(f"Folder not found for letter {letter}")
+            letter_images.append({'type': 'missing', 'char': letter.upper()})
 
-    
     return render_template('process.html', user_input=user_input, letter_images=letter_images)
+
+
+@app.route('/api/render', methods=['POST'])
+def api_render():
+    """Return JSON describing how to render the provided text as a list of items.
+    Each item is a dict with keys: type: 'image'|'space'|'missing', and src/char when applicable.
+    """
+
+    data = request.get_json(silent=True) or {}
+    user_input = data.get('text') if isinstance(data, dict) else None
+
+    # Also support form-encoded POSTs for compatibility
+    if user_input is None:
+        user_input = request.form.get('user_input')
+
+    if user_input is None:
+        return jsonify({'error': 'No text provided'}), 400
+
+    items = []
+    for letter in user_input:
+        if letter == ' ':
+            items.append({'type': 'space'})
+            continue
+
+        letter_folder = os.path.join(letters_dir, letter.upper())
+
+        if os.path.exists(letter_folder):
+            images = [f for f in os.listdir(letter_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+            if images:
+                selected = random.choice(images)
+                image_path = f"letters/{letter.upper()}/{selected}"
+                items.append({'type': 'image', 'src': image_path})
+            else:
+                items.append({'type': 'missing', 'char': letter.upper()})
+        else:
+            items.append({'type': 'missing', 'char': letter.upper()})
+
+    return jsonify({'input': user_input, 'items': items})
+
 
 if __name__ == '__main__':
   

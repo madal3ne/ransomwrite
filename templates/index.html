@@ -24,11 +24,106 @@
 </head>
 <body>
     <h1>Enter Your Text</h1>
-    <form action="/process" method="post">
-        <label for="user_input">Enter text:</label>
-        <input type="text" id="user_input" name="user_input" required>
-        <button type="submit">Submit</button>
-    </form>
-     
+    <div style="max-width:720px;margin:0 auto;text-align:left;">
+        <label for="user_input"><strong>Type your note:</strong></label>
+        <textarea id="user_input" name="user_input" rows="4" style="width:100%; padding:10px; font-size:16px;" placeholder="Type something like: HELLO WORLD"></textarea>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+            <button id="submit_btn" style="padding:10px 16px;">Generate (full page)</button>
+            <button id="clear_btn" style="padding:10px 16px;">Clear</button>
+        </div>
+
+        <h3 style="margin-top:18px;">Live preview</h3>
+        <div id="preview" style="min-height:120px; border:1px solid #eee; padding:12px; background:#fff; display:flex; flex-wrap:wrap; align-items:center;"></div>
+    </div>
+
+    <script>
+        const input = document.getElementById('user_input');
+        const preview = document.getElementById('preview');
+        const submitBtn = document.getElementById('submit_btn');
+        const clearBtn = document.getElementById('clear_btn');
+
+        function renderItems(items) {
+            preview.innerHTML = '';
+            items.forEach(item => {
+                if (item.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = item.src;
+                    img.className = 'letter';
+                    img.style.height = '72px';
+                    img.style.marginRight = '6px';
+                    preview.appendChild(img);
+                } else if (item.type === 'space') {
+                    const sp = document.createElement('span');
+                    sp.style.display = 'inline-block';
+                    sp.style.width = '20px';
+                    preview.appendChild(sp);
+                } else if (item.type === 'missing') {
+                    const miss = document.createElement('span');
+                    miss.className = 'missing';
+                    miss.textContent = '[' + item.char + ']';
+                    miss.style.display = 'inline-block';
+                    miss.style.padding = '4px 6px';
+                    miss.style.border = '1px dashed #aaa';
+                    miss.style.background = '#f9f9f9';
+                    miss.style.fontWeight = 'bold';
+                    miss.style.color = '#c00';
+                    miss.style.marginRight = '6px';
+                    preview.appendChild(miss);
+                }
+            });
+        }
+
+        let timer = null;
+        input.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                const text = input.value;
+                if (!text) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/render', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        renderItems(data.items);
+                    } else {
+                        preview.innerHTML = '<em style="color:#c33;">Error rendering preview</em>';
+                    }
+                } catch (err) {
+                    preview.innerHTML = '<em style="color:#c33;">Error rendering preview</em>';
+                }
+            }, 250);
+        });
+
+        submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const text = input.value || '';
+            // Redirect to full-page generator (POST through a form)
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/process';
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'user_input';
+            hidden.value = text;
+            form.appendChild(hidden);
+            document.body.appendChild(form);
+            form.submit();
+        });
+
+        clearBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            input.value = '';
+            preview.innerHTML = '';
+            input.focus();
+        });
+    </script>
+
 </body>
 </html>
