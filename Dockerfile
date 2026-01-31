@@ -21,8 +21,10 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy app
 COPY . /app
 
-# Expose port
+# Expose port (default shown, overridden by runtime $PORT)
 EXPOSE 5000
 
-# Run with gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+# Run with gunicorn. Use environment variables so PaaS providers (e.g. Render)
+# can inject the correct $PORT and optionally configure the number of workers
+# via $GUNICORN_WORKERS.
+CMD ["sh", "-lc", "gunicorn -w ${GUNICORN_WORKERS:-4} -b 0.0.0.0:${PORT:-5000} app:app"]
