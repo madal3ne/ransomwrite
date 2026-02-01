@@ -1,6 +1,6 @@
 Flask>=2.2
 pytesseract
-opencv-python
+opencv-python-headless
 numpy
 Pillow
 matplotlib
