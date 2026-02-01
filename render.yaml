@@ -3,13 +3,10 @@
 services:
   - name: ransomwrite
     type: web
-    env: docker
+    runtime: docker
     branch: main
     plan: starter
-    disk: 1024
-    repo: madal3ne/ransomwrite
-    buildCommand: ''
-    startCommand: "gunicorn -w ${GUNICORN_WORKERS:-4} -b 0.0.0.0:${PORT:-5000} app:app"
+    dockerCommand: "gunicorn -w ${GUNICORN_WORKERS:-4} -b 0.0.0.0:${PORT:-5000} app:app"
     envVars:
       - key: ITEM_MAX_CHARS
         value: '200'
@@ -21,7 +18,3 @@ services:
         value: '30 per minute'
       - key: EXPORT_LIMIT
         value: '5 per minute'
-    services:
-      - type: web
-        protocol: http
-        internalPort: 5000
