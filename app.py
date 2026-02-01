@@ -214,7 +214,10 @@ def export_png():
     # Rendering parameters
     target_height = 144  # pixels for high-res PNG
     gap = 8
-    padding = 16
+    line_gap = 24
+    padding = 48
+    # A4 width at 300 DPI (roughly 8.27in * 300)
+    page_width = 2480
 
     # Build sequence of (type, payload) where type: 'image' -> path, 'text' -> char, 'space'
     seq = []
@@ -236,13 +239,11 @@ def export_png():
 
     # Load images and measure widths
     elements = []
-    total_w = padding * 2
     max_h = target_height
     for typ, payload in seq:
         if typ == 'space':
             w = int(target_height * 0.3)  # space width proportion
             elements.append(('space', w, None))
-            total_w += w + gap
         elif typ == 'image':
             try:
                 im = Image.open(payload).convert('RGBA')
@@ -250,7 +251,6 @@ def export_png():
                 w = int(im.width * (target_height / im.height))
                 im = im.resize((w, target_height), Image.LANCZOS)
                 elements.append(('image', w, im))
-                total_w += w + gap
             except Exception:
                 # on failure fallback to text
                 elements.append(('text', 0, payload))
@@ -269,7 +269,7 @@ def export_png():
     except Exception:
         font = ImageFont.load_default()
 
-    # Determine text widths and finalize total width
+    # Determine text widths
     draw_tmp = ImageDraw.Draw(Image.new('RGBA', (10,10)))
     for i, (typ, w, payload) in enumerate(elements):
         if typ == 'text':
@@ -300,41 +300,74 @@ def export_png():
             tw = bbox[2] - bbox[0]
             th = bbox[3] - bbox[1]
             elements[i] = ('text', tw, (payload, f, th))
-            total_w += tw + gap
+
+    # Line wrapping to an A4 width
+    max_line_w = max(1, page_width - padding * 2)
+    lines = []
+    current = []
+    current_w = 0
+    for typ, w, payload in elements:
+        if typ == 'space' and not current:
+            # no leading spaces
+            continue
+        next_w = w if not current else w + gap
+        if current and (current_w + next_w > max_line_w):
+            # trim trailing spaces
+            while current and current[-1][0] == 'space':
+                current.pop()
+            lines.append(current)
+            current = []
+            current_w = 0
+            if typ == 'space':
+                continue
+        if not current:
+            current.append((typ, w, payload))
+            current_w = w
+        else:
+            current.append((typ, w, payload))
+            current_w += w + gap
+    if current:
+        while current and current[-1][0] == 'space':
+            current.pop()
+        if current:
+            lines.append(current)
 
     # Create canvas
-    img_w = max(1, total_w)
-    img_h = max_h + padding*2
+    img_w = page_width
+    img_h = padding * 2 + len(lines) * max_h + max(0, len(lines) - 1) * line_gap
     canvas = Image.new('RGBA', (img_w, img_h), (255,255,255,255))
     draw = ImageDraw.Draw(canvas)
 
-    # Paste elements
-    x = padding
-    y_center = padding + max_h//2
-    for typ, w, payload in elements:
-        if typ == 'space':
-            x += w + gap
-            continue
-        if typ == 'image':
-            im = payload
-            y = padding + (max_h - im.height)//2
-            canvas.paste(im, (x, y), im)
-            x += im.width + gap
-        else:  # text payload: (char, font, th)
-            ch, fnt, th = payload
-            tw, th_actual = draw.textsize(ch, font=fnt)
-            # center vertically
-            y = y_center - th_actual//2
-            # draw a rectangle behind like missing-text style
-            rect_h = int(target_height)
-            rect_w = tw + 16
-            rect_y = padding + (max_h - rect_h)//2
-            rect_x = x
-            draw.rectangle([rect_x, rect_y, rect_x+rect_w, rect_y+rect_h], fill=(249,249,249,255), outline=(170,170,170,255))
-            # draw character centered in rect
-            tx = rect_x + (rect_w - tw)//2
-            draw.text((tx, y), ch, font=fnt, fill=(170,0,0,255))
-            x += rect_w + gap
+    # Paste elements line by line
+    y = padding
+    for line in lines:
+        x = padding
+        y_center = y + max_h // 2
+        for typ, w, payload in line:
+            if typ == 'space':
+                x += w + gap
+                continue
+            if typ == 'image':
+                im = payload
+                iy = y + (max_h - im.height)//2
+                canvas.paste(im, (x, iy), im)
+                x += im.width + gap
+            else:  # text payload: (char, font, th)
+                ch, fnt, th = payload
+                tw, th_actual = draw.textsize(ch, font=fnt)
+                # center vertically
+                ty = y_center - th_actual//2
+                # draw a rectangle behind like missing-text style
+                rect_h = int(target_height)
+                rect_w = tw + 16
+                rect_y = y + (max_h - rect_h)//2
+                rect_x = x
+                draw.rectangle([rect_x, rect_y, rect_x+rect_w, rect_y+rect_h], fill=(249,249,249,255), outline=(170,170,170,255))
+                # draw character centered in rect
+                tx = rect_x + (rect_w - tw)//2
+                draw.text((tx, ty), ch, font=fnt, fill=(170,0,0,255))
+                x += rect_w + gap
+        y += max_h + line_gap
 
     # Draw watermark
     watermark = "@madal3ne"
